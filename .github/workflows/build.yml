@@ -14,10 +14,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Unpack zip if project is zipped
+        run: |
+          if [ -z "$(find . -name settings.gradle.kts | head -1)" ]; then
+            z=$(find . -maxdepth 2 -iname "*.zip" | head -1)
+            if [ -n "$z" ]; then
+              mkdir -p unpacked
+              unzip -q -o "$z" -d unpacked
+            fi
+          fi
+
       - name: Locate project
         id: loc
         run: |
-          f=$(find . -name settings.gradle.kts -not -path "*/node_modules/*" | head -1)
+          f=$(find . -name settings.gradle.kts | head -1)
           if [ -z "$f" ]; then
             echo "settings.gradle.kts not found. Repository contents:"
             find . -path ./.git -prune -o -type f -print | head -50
