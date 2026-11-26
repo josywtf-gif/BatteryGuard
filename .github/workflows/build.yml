@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -26,6 +26,21 @@ jobs:
 
       - name: Apply fixed top-left overlay geometry
         run: python3 fix_overlay.py
+
+      - name: Persist corrected project archive
+        run: |
+          if [ -d unpacked/fps_fast ]; then
+            cd unpacked
+            zip -qr ../BatteryGuard.zip fps_fast
+            cd ..
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add BatteryGuard.zip
+            if ! git diff --cached --quiet; then
+              git commit -m "Persist fixed overlay geometry [skip ci]"
+              git push
+            fi
+          fi
 
       - name: Locate project
         id: loc
