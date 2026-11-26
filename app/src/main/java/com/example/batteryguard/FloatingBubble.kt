@@ -215,7 +215,7 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
                     addView(caption, LinearLayout.LayoutParams(-2, -2))
                     addView(value, LinearLayout.LayoutParams(-2, -2).apply { topMargin = px(1) })
                 }
-                hRow(h, strip).also { it.addView(col, LinearLayout.LayoutParams(0, -1, 1f).apply { marginStart = px(8) }) } to value
+                hRow(h, strip).also { it.addView(col, LinearLayout.LayoutParams(-2, -1).apply { marginStart = px(8) }) } to value
             }
             "chips" -> {
                 val row = hRow(h, iconCell(filledIcon(key), Color.WHITE, h, px(26), px(17))).also { it.addView(value, valueLp) }
@@ -276,49 +276,16 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         }
         textSizeSp = newTextSize; rowHeightPx = newRowHeight
 
-        val samples = mapOf(
-            "cpu_temp" to "99.9 °C", "battery_temp" to "99.9 °C", "ram" to "99999 / 99999 MB",
-            "time" to "23:59", "battery" to if (voltageDetails) "100% · 4.50 В · −999 мА" else "100%"
-        )
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = valueTypeface(style)
-            textSize = valueSizeSp(style) * ctx.resources.displayMetrics.scaledDensity
-        }
-        val screenWidth = ctx.resources.displayMetrics.widthPixels
-        val leftPad = px(16)
-        val padH = leftPad + px(8)
         val padV = when (style) { "rtss", "chips" -> px(4); else -> px(6) }
-        val contentWidth: Float
-        val contentHeight: Int
-        if (style == "compact") {
-            contentWidth = keys.sumOf { (paint.measureText((samples[it] ?: "н/д")) + px(20) + px(2) + px(10)).toDouble() }.toFloat() - px(10)
-            contentHeight = rowHeightPx
-            root.orientation = LinearLayout.HORIZONTAL
-        } else {
-            val extra = when (style) { "rtss" -> px(55); "terminal" -> px(71); "dashboard" -> px(11); "chips" -> px(46); else -> px(33) }
-            contentWidth = keys.maxOfOrNull { paint.measureText((samples[it] ?: "н/д")) + extra } ?: px(70).toFloat()
-            contentHeight = keys.size * (rowH(style) + rowGap(style))
-            root.orientation = LinearLayout.VERTICAL
-        }
-        // Include actual row chrome (icon/name slot, value gap and right padding)
-        // so the measured width is sufficient for the longest RAM value.
-        // contentWidth already includes the row's icon/name slot and value gap.
-        // Add only the left inset; adding right padding twice made the panel
-        // visibly overhang past the last text/value on the right.
-        val desired = (contentWidth + leftPad).toInt()
-        // Width is content-measured in dp and does not depend on orientation.
-        // Do not scale it by the current screen's short edge: usable height
-        // changes with system bars/cutouts after rotation and caused stretching.
-        contentWidthPx = maxOf(desired, px(180))
-            .coerceAtLeast(px(92))
-        contentHeightPx = contentHeight.coerceAtLeast(rowHeightPx) + padV * 2
+        root.orientation = if (style == "compact") LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
         configuredKeys = keys; configuredStyle = style; configuredVoltageDetails = voltageDetails
 
         backgroundView.background = styleBackground(style)
         root.background = null
         root.gravity = Gravity.CENTER_VERTICAL
-        root.setPadding(insetLeft + leftPad, padV, 0, padV)
+        root.setPadding(insetLeft + px(16), padV, 0, padV)
         if (keysChanged || sizeChanged) rebuildRows(keys, style)
+        measureContentBounds()
         updateOverlayGeometry()
     }
 
@@ -339,26 +306,15 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
      * placeholder strings. The old 99999/99999 RAM sample kept a large blank
      * area on the right even when the actual rows were short.
      */
-    private fun updateWidthFromCurrentValues() {
-        val style = configuredStyle
-        val leftPad = px(16)
-        val rowExtra = when (style) {
-            "rtss" -> px(55)
-            "terminal" -> px(71)
-            "dashboard" -> px(11)
-            "chips" -> px(46)
-            "compact" -> px(32)
-            else -> px(33)
-        }
-        val density = ctx.resources.displayMetrics.density
-        val widestDp = configuredKeys.maxOfOrNull { key ->
-            val view = rows[key]
-            val value = view?.text?.toString().orEmpty()
-            val textWidthPx = view?.paint?.measureText(value) ?: 0f
-            textWidthPx / density + rowExtra / density
-        } ?: 70f
-        val contentWidthDp = (widestDp + 16f).coerceAtLeast(92f)
-        contentWidthPx = px(contentWidthDp.toInt())
+    private fun measureContentBounds() {
+        // Measure actual WRAP_CONTENT rows, including their real text, icon/name
+        // slots and padding. Never use screen fractions or placeholder RAM text.
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        contentWidthPx = root.measuredWidth.coerceAtLeast(px(1))
+        contentHeightPx = root.measuredHeight.coerceAtLeast(rowHeightPx)
     }
 
     private fun updateOverlayGeometry() {
@@ -386,14 +342,15 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
 
         // Solid background extends from the fixed top-left origin to the
         // shifted text layer. The text itself is the only translated child.
+        measureContentBounds()
         backgroundView.layoutParams = FrameLayout.LayoutParams(
             contentWidthPx + offsetX.coerceAtLeast(0),
             contentHeightPx + offsetY.coerceAtLeast(0),
             Gravity.TOP or Gravity.START
         )
         root.layoutParams = FrameLayout.LayoutParams(
-            contentWidthPx,
-            contentHeightPx,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
             Gravity.TOP or Gravity.START
         ).apply {
             leftMargin = offsetX
@@ -433,7 +390,7 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
             val view = rows[key]
             if (view != null && view.text.toString() != value) { view.text = value; textChanged = true }
         }
-        updateWidthFromCurrentValues()
+        measureContentBounds()
         updateOverlayGeometry()
         if (!shown) try { wm.addView(windowRoot, lp); shown = true } catch (_: Exception) {}
         if (shown && textChanged) root.invalidate()
