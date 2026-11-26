@@ -177,7 +177,12 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
     private fun createRow(style: String, key: String): Pair<View, TextView> {
         val h = rowH(style)
         val value = valueText(style, key)
-        val valueLp = LinearLayout.LayoutParams(0, -1, 1f).apply { marginStart = px(5) }
+        // Measure the value by its real text width; weighted 0dp views
+        // stretch to the row width and leave an orientation-dependent blank.
+        val valueLp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            -1
+        ).apply { marginStart = px(5) }
         return when (style) {
             "rtss" -> {
                 val name = TextView(ctx).apply {
@@ -345,12 +350,15 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
             "compact" -> px(32)
             else -> px(33)
         }
-        val widest = configuredKeys.maxOfOrNull { key ->
-            val value = rows[key]?.text?.toString().orEmpty()
-            val textWidth = rows[key]?.paint?.measureText(value) ?: 0f
-            textWidth + rowExtra
-        } ?: px(70).toFloat()
-        contentWidthPx = (widest + leftPad).toInt().coerceAtLeast(px(92))
+        val density = ctx.resources.displayMetrics.density
+        val widestDp = configuredKeys.maxOfOrNull { key ->
+            val view = rows[key]
+            val value = view?.text?.toString().orEmpty()
+            val textWidthPx = view?.paint?.measureText(value) ?: 0f
+            textWidthPx / density + rowExtra / density
+        } ?: 70f
+        val contentWidthDp = (widestDp + 16f).coerceAtLeast(92f)
+        contentWidthPx = px(contentWidthDp.toInt())
     }
 
     private fun updateOverlayGeometry() {
