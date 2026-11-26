@@ -283,7 +283,17 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
             root.orientation = LinearLayout.VERTICAL
         }
         val desired = (contentWidth + padH).toInt() + insetLeft
-        contentWidthPx = desired.coerceIn(px(92), screenWidth.coerceAtLeast(px(92)))
+        // Fixed orientation-independent width: use the shorter screen edge as
+        // a shared reference. This prevents a wider landscape DisplayMetrics
+        // from stretching the overlay compared with portrait.
+        val shortEdgePx = minOf(
+            ctx.resources.displayMetrics.widthPixels,
+            ctx.resources.displayMetrics.heightPixels
+        )
+        val normalizedWidthPx = (shortEdgePx * 0.42f).toInt()
+        // Keep enough room for the current text, but use the same reference
+        // width in both orientations (text remains ellipsized if it exceeds it).
+        contentWidthPx = normalizedWidthPx.coerceAtLeast(px(92))
         contentHeightPx = contentHeight.coerceAtLeast(rowHeightPx) + padV * 2
         configuredKeys = keys; configuredStyle = style; configuredVoltageDetails = voltageDetails
 
@@ -317,8 +327,10 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         val maxX = (commonEdge - contentWidthPx).coerceAtLeast(0)
         val minY = -contentHeightPx + rowHeightPx
         val maxY = (commonEdge - contentHeightPx).coerceAtLeast(0)
-        val offsetX = px(Prefs.posX(ctx)).coerceIn(minX, maxX)
-        val offsetY = px(Prefs.posY(ctx)).coerceIn(minY, maxY)
+        // Slider values map to a fraction of the common short edge, not to
+        // orientation-dependent pixel dimensions. +/-200 maps to +/- half edge.
+        val offsetX = (Prefs.posX(ctx) * commonEdge / 400f).toInt().coerceIn(minX, maxX)
+        val offsetY = (Prefs.posY(ctx) * commonEdge / 400f).toInt().coerceIn(minY, maxY)
 
         lp.gravity = Gravity.TOP or Gravity.START
         lp.x = 0
