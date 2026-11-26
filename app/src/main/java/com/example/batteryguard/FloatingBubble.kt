@@ -149,7 +149,18 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         setTextColor(when (style) { "neon" -> accent(key); "terminal" -> 0xFFB6FFB0.toInt(); else -> Color.WHITE })
         typeface = valueTypeface(style)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, valueSizeSp(style)); maxLines = 1
-        ellipsize = TextUtils.TruncateAt.END; includeFontPadding = false; gravity = Gravity.CENTER_VERTICAL
+        ellipsize = if (key == "ram") null else TextUtils.TruncateAt.END
+        includeFontPadding = false; gravity = Gravity.CENTER_VERTICAL
+        // RAM has a variable-length "used / total MB" string. Shrink it
+        // slightly if needed instead of showing an ellipsis.
+        if (key == "ram" && Build.VERSION.SDK_INT >= 26) {
+            setAutoSizeTextTypeUniformWithConfiguration(
+                (valueSizeSp(style) * 0.72f).toInt().coerceAtLeast(10),
+                valueSizeSp(style).toInt().coerceAtLeast(12),
+                1,
+                TypedValue.COMPLEX_UNIT_SP
+            )
+        }
         when (style) {
             "minimal" -> setShadowLayer(px(3).toFloat(), 0f, px(1).toFloat(), Color.BLACK)
             "neon" -> setShadowLayer(px(6).toFloat(), 0f, 0f, accent(key))
@@ -259,7 +270,7 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         textSizeSp = newTextSize; rowHeightPx = newRowHeight
 
         val samples = mapOf(
-            "cpu_temp" to "99.9 °C", "battery_temp" to "99.9 °C", "ram" to "9999 / 9999 MB",
+            "cpu_temp" to "99.9 °C", "battery_temp" to "99.9 °C", "ram" to "99999 / 99999 MB",
             "time" to "23:59", "battery" to if (voltageDetails) "100% · 4.50 В · −999 мА" else "100%"
         )
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -293,7 +304,10 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         val normalizedWidthPx = (shortEdgePx * 0.42f).toInt()
         // Keep enough room for the current text, but use the same reference
         // width in both orientations (text remains ellipsized if it exceeds it).
-        contentWidthPx = normalizedWidthPx.coerceAtLeast(px(92))
+        // Use the measured worst-case row width too. This value is derived
+        // from the same short-edge reference in both orientations.
+        contentWidthPx = maxOf(normalizedWidthPx, desired).coerceAtLeast(px(92))
+            .coerceAtMost(shortEdgePx.coerceAtLeast(px(92)))
         contentHeightPx = contentHeight.coerceAtLeast(rowHeightPx) + padV * 2
         configuredKeys = keys; configuredStyle = style; configuredVoltageDetails = voltageDetails
 
