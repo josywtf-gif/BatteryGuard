@@ -286,7 +286,11 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         backgroundView.background = styleBackground(style)
         root.background = null
         root.gravity = Gravity.CENTER_VERTICAL
-        root.setPadding(insetLeft + px(16), padV, 0, padV)
+        // Keep identical horizontal insets in portrait and landscape.
+        // The display cutout safeInsetLeft changes with rotation and was
+        // adding a visibly larger blank strip on the left in landscape.
+        // A small fixed right inset keeps the panel from ending flush at text.
+        root.setPadding(px(16), padV, px(6), padV)
         if (keysChanged || sizeChanged) rebuildRows(keys, style)
         measureContentBounds()
         updateOverlayGeometry()
