@@ -329,6 +329,30 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
      * the child layer so its right/bottom edge cannot disappear off-screen.
      * The WindowManager surface itself remains MATCH_PARENT at (0,0).
      */
+    /**
+     * Resize the panel to the values currently displayed, not worst-case
+     * placeholder strings. The old 99999/99999 RAM sample kept a large blank
+     * area on the right even when the actual rows were short.
+     */
+    private fun updateWidthFromCurrentValues() {
+        val style = configuredStyle
+        val leftPad = px(16)
+        val rowExtra = when (style) {
+            "rtss" -> px(55)
+            "terminal" -> px(71)
+            "dashboard" -> px(11)
+            "chips" -> px(46)
+            "compact" -> px(32)
+            else -> px(33)
+        }
+        val widest = configuredKeys.maxOfOrNull { key ->
+            val value = rows[key]?.text?.toString().orEmpty()
+            val textWidth = rows[key]?.paint?.measureText(value) ?: 0f
+            textWidth + rowExtra
+        } ?: px(70).toFloat()
+        contentWidthPx = (widest + leftPad).toInt().coerceAtLeast(px(92))
+    }
+
     private fun updateOverlayGeometry() {
         val metrics = ctx.resources.displayMetrics
         val screenWidth = metrics.widthPixels
@@ -401,6 +425,7 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
             val view = rows[key]
             if (view != null && view.text.toString() != value) { view.text = value; textChanged = true }
         }
+        updateWidthFromCurrentValues()
         updateOverlayGeometry()
         if (!shown) try { wm.addView(windowRoot, lp); shown = true } catch (_: Exception) {}
         if (shown && textChanged) root.invalidate()
