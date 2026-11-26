@@ -9,7 +9,11 @@ if not candidates:
 path = next((p for p in candidates if "com/example/batteryguard" in str(p)), candidates[0])
 s = path.read_text(encoding="utf-8")
 
-# Keep the WindowManager surface permanently attached to the screen's top-left.
+# Idempotent: once the fixed geometry is present, leave the source untouched.
+if "private fun updateOverlayGeometry()" in s and "lp.gravity = Gravity.TOP or Gravity.START" in s:
+    print(f"Overlay geometry already fixed in {path}")
+    raise SystemExit(0)
+
 start = s.index("    private val lp = WindowManager.LayoutParams(")
 end = s.index("    private var shown = false", start)
 lp = """    private val lp = WindowManager.LayoutParams(
@@ -34,12 +38,10 @@ if "private var contentWidthPx" not in s:
     s = s.replace("    private var insetLeft = 0\n",
                   "    private var insetLeft = 0\n    private var contentWidthPx = px(180)\n    private var contentHeightPx = px(80)\n")
 
-# Remove the previous oversized full-screen window sizing.
 s = s.replace("""        val oldWidth = lp.width; val oldHeight = lp.height
         lp.width = ctx.resources.displayMetrics.widthPixels + px(600)
         lp.height = ctx.resources.displayMetrics.heightPixels + px(600)
 """, "")
-
 s = s.replace("""        if (!keysChanged && !sizeChanged && !contentChanged) return
 """, """        if (!keysChanged && !sizeChanged && !contentChanged) {
             updateOverlayGeometry()
@@ -47,7 +49,6 @@ s = s.replace("""        if (!keysChanged && !sizeChanged && !contentChanged) re
         }
 """)
 
-# Replace the previous child/window positioning block with fixed-corner sizing.
 start = s.index("        val contentWidthPx = desired.coerceIn", s.index("fun applySize"))
 end = s.index("    private fun rebuildRows", start)
 geometry = """        contentWidthPx = desired.coerceIn(px(92), screenWidth.coerceAtLeast(px(92)))
@@ -82,7 +83,6 @@ geometry = """        contentWidthPx = desired.coerceIn(px(92), screenWidth.coer
 """
 s = s[:start] + geometry + s[end:]
 
-# Refresh changes only geometry; never assign WindowManager x/y from the sliders.
 s = re.sub(
     r"""    fun show\(values: Map<String, String>\) \{.*?\n    fun hide\(\).*?\n\}""",
     """    fun show(values: Map<String, String>) {
