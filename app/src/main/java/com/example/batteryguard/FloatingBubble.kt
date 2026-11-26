@@ -293,7 +293,9 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
             contentHeight = keys.size * (rowH(style) + rowGap(style))
             root.orientation = LinearLayout.VERTICAL
         }
-        val desired = (contentWidth + padH).toInt() + insetLeft
+        // Include actual row chrome (icon/name slot, value gap and right padding)
+        // so the measured width is sufficient for the longest RAM value.
+        val desired = (contentWidth + padH + px(8)).toInt() + insetLeft
         // Fixed orientation-independent width: use the shorter screen edge as
         // a shared reference. This prevents a wider landscape DisplayMetrics
         // from stretching the overlay compared with portrait.
