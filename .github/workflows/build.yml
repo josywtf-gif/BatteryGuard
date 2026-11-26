@@ -24,6 +24,9 @@ jobs:
             fi
           fi
 
+      - name: Apply fixed top-left overlay geometry
+        run: python3 fix_overlay.py
+
       - name: Locate project
         id: loc
         run: |
