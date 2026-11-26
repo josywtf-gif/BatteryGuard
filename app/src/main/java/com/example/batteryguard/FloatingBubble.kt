@@ -297,7 +297,10 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         }
         // Include actual row chrome (icon/name slot, value gap and right padding)
         // so the measured width is sufficient for the longest RAM value.
-        val desired = (contentWidth + padH + px(8)).toInt()
+        // contentWidth already includes the row's icon/name slot and value gap.
+        // Add only the left inset; adding right padding twice made the panel
+        // visibly overhang past the last text/value on the right.
+        val desired = (contentWidth + leftPad).toInt()
         // Width is content-measured in dp and does not depend on orientation.
         // Do not scale it by the current screen's short edge: usable height
         // changes with system bars/cutouts after rotation and caused stretching.
@@ -309,7 +312,7 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         backgroundView.background = styleBackground(style)
         root.background = null
         root.gravity = Gravity.CENTER_VERTICAL
-        root.setPadding(insetLeft + leftPad, padV, px(8), padV)
+        root.setPadding(insetLeft + leftPad, padV, 0, padV)
         if (keysChanged || sizeChanged) rebuildRows(keys, style)
         updateOverlayGeometry()
     }
