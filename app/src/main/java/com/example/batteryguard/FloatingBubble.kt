@@ -234,20 +234,22 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         }
     }
 
-    private fun styleBackground(style: String): LayerDrawable {
-        // Скруглён только нижний правый угол; рамка у верхнего и левого краёв уходит за экран.
+    private fun styleBackground(style: String, opacityPercent: Int = Prefs.alpha(ctx)): LayerDrawable {
+        // Opacity slider controls the panel fill itself. At 100%, fill alpha
+        // must be 255 (opaque), not the old hard-coded 218/235/238 values.
+        val fillAlpha = (opacityPercent.coerceIn(0, 100) * 255 / 100)
         val r = when (style) { "rtss" -> 6; "minimal" -> 0; "neon" -> 10; "compact" -> 12; "terminal" -> 4; "dashboard" -> 14; "chips" -> 0; "emoji" -> 16; else -> 18 }.let { px(it) }.toFloat()
         val bg = GradientDrawable().apply {
             cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, 0f, 0f)
             when (style) {
-                "rtss" -> { setColor(Color.argb(218, 8, 10, 12)); setStroke(px(1), Color.argb(100, 150, 150, 150)) }
-                "minimal", "chips" -> setColor(Color.TRANSPARENT)
-                "neon" -> { setColor(Color.argb(235, 6, 8, 14)); setStroke(px(2), Color.argb(230, 67, 200, 255)) }
-                "compact" -> setColor(Color.argb(225, 14, 18, 26))
-                "terminal" -> { setColor(Color.argb(240, 0, 10, 4)); setStroke(px(1), 0xFF1F9A50.toInt()) }
-                "dashboard" -> setColor(Color.argb(235, 34, 36, 42))
-                "emoji" -> setColor(Color.argb(225, 40, 30, 52))
-                else -> setColor(Color.argb(238, 25, 32, 46))
+                "rtss" -> { setColor(Color.argb(fillAlpha, 8, 10, 12)); setStroke(px(1), Color.argb(100, 150, 150, 150)) }
+                "minimal", "chips" -> setColor(Color.argb(fillAlpha, 0, 0, 0))
+                "neon" -> { setColor(Color.argb(fillAlpha, 6, 8, 14)); setStroke(px(2), Color.argb(230, 67, 200, 255)) }
+                "compact" -> setColor(Color.argb(fillAlpha, 14, 18, 26))
+                "terminal" -> { setColor(Color.argb(fillAlpha, 0, 10, 4)); setStroke(px(1), 0xFF1F9A50.toInt()) }
+                "dashboard" -> setColor(Color.argb(fillAlpha, 34, 36, 42))
+                "emoji" -> setColor(Color.argb(fillAlpha, 40, 30, 52))
+                else -> setColor(Color.argb(fillAlpha, 25, 32, 46))
             }
         }
         return LayerDrawable(arrayOf(bg)).apply { setLayerInset(0, -px(3), -px(3), 0, 0) }
@@ -381,9 +383,13 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
     }
 
     fun applyAlpha(percent: Int) {
-        val a = percent.coerceIn(30, 100) / 100f
+        val normalized = percent.coerceIn(0, 100)
+        val a = normalized / 100f
         root.alpha = a
-        backgroundView.alpha = a
+        // Apply opacity to the drawable's fill alpha, not only View.alpha:
+        // previously semi-transparent ARGB fills stayed translucent even at 100%.
+        backgroundView.alpha = 1f
+        backgroundView.background = styleBackground(Prefs.overlayStyle(ctx), normalized)
     }
 
     fun show(values: Map<String, String>) {
