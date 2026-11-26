@@ -301,9 +301,24 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
      * Only the text layer receives slider margins; negative margins are clipped
      * by the fixed screen-sized parent instead of moving the system window.
      */
+    /**
+     * Keep the same usable positioning range in portrait and landscape.
+     * Use the shorter screen dimension as the common reference, then clamp
+     * the child layer so its right/bottom edge cannot disappear off-screen.
+     * The WindowManager surface itself remains MATCH_PARENT at (0,0).
+     */
     private fun updateOverlayGeometry() {
-        val offsetX = px(Prefs.posX(ctx))
-        val offsetY = px(Prefs.posY(ctx))
+        val metrics = ctx.resources.displayMetrics
+        val screenWidth = metrics.widthPixels
+        val screenHeight = metrics.heightPixels
+        val commonEdge = minOf(screenWidth, screenHeight)
+
+        val minX = -contentWidthPx + px(12)
+        val maxX = (commonEdge - contentWidthPx).coerceAtLeast(0)
+        val minY = -contentHeightPx + rowHeightPx
+        val maxY = (commonEdge - contentHeightPx).coerceAtLeast(0)
+        val offsetX = px(Prefs.posX(ctx)).coerceIn(minX, maxX)
+        val offsetY = px(Prefs.posY(ctx)).coerceIn(minY, maxY)
 
         lp.gravity = Gravity.TOP or Gravity.START
         lp.x = 0
