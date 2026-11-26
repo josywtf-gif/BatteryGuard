@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:padding="12dp">
+        <ImageButton android:id="@+id/btnBack" android:layout_width="48dp" android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Назад" android:src="@drawable/ic_back" android:padding="12dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="Настройки" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" />
+    </LinearLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" app:cardCornerRadius="24dp" app:cardElevation="0dp" app:strokeColor="#33808FA8" app:strokeWidth="1dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+                    <LinearLayout android:id="@+id/stylesHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:orientation="horizontal" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Стили" android:textAppearance="?attr/textAppearanceTitleMedium" android:textStyle="bold" />
+                        <TextView android:id="@+id/stylesArrow" android:layout_width="32dp" android:layout_height="32dp" android:gravity="center" android:text="⌄" android:textSize="22sp" />
+                    </LinearLayout>
+                    <RadioGroup android:id="@+id/overlayStyleGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="6dp" android:visibility="gone">
+                    </RadioGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" app:cardCornerRadius="24dp" app:cardElevation="0dp" app:strokeColor="#33808FA8" app:strokeWidth="1dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+                    <LinearLayout android:id="@+id/metricsHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:orientation="horizontal" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Показатели и порядок" android:textAppearance="?attr/textAppearanceTitleMedium" android:textStyle="bold" />
+                        <TextView android:id="@+id/metricsArrow" android:layout_width="32dp" android:layout_height="32dp" android:gravity="center" android:text="⌄" android:textSize="22sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/metricsBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Отметьте нужные показатели. Удерживайте значок ☰ и перетащите строку на нужное место. Включите «Вольтаж и потребление», чтобы добавить напряжение и ток к строке «Заряд»." android:textAppearance="?attr/textAppearanceBodySmall" />
+                        <androidx.recyclerview.widget.RecyclerView android:id="@+id/metricsList" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:overScrollMode="never" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" app:cardCornerRadius="24dp" app:cardElevation="0dp" app:strokeColor="#33808FA8" app:strokeWidth="1dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+                    <LinearLayout android:id="@+id/adjustmentsHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:orientation="horizontal" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Регулировки" android:textAppearance="?attr/textAppearanceTitleMedium" android:textStyle="bold" />
+                        <TextView android:id="@+id/adjustmentsArrow" android:layout_width="32dp" android:layout_height="32dp" android:gravity="center" android:text="⌄" android:textSize="22sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/adjustmentsBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Размер окна" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                        <TextView android:id="@+id/tvSize" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="48 dp" />
+                        <com.google.android.material.slider.Slider android:id="@+id/sliderSize" android:layout_width="match_parent" android:layout_height="wrap_content" android:valueFrom="24" android:valueTo="96" android:stepSize="2" android:value="48" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Непрозрачность" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                        <TextView android:id="@+id/tvAlpha" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="90%" />
+                        <com.google.android.material.slider.Slider android:id="@+id/sliderAlpha" android:layout_width="match_parent" android:layout_height="wrap_content" android:valueFrom="30" android:valueTo="100" android:stepSize="5" android:value="90" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Положение по горизонтали" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                        <TextView android:id="@+id/tvPositionX" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-24 dp" />
+                        <com.google.android.material.slider.Slider android:id="@+id/sliderPositionX" android:layout_width="match_parent" android:layout_height="wrap_content" android:valueFrom="-200" android:valueTo="200" android:stepSize="2" android:value="-24" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Положение по вертикали" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                        <TextView android:id="@+id/tvPositionY" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-24 dp" />
+                        <com.google.android.material.slider.Slider android:id="@+id/sliderPositionY" android:layout_width="match_parent" android:layout_height="wrap_content" android:valueFrom="-200" android:valueTo="200" android:stepSize="2" android:value="-24" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" app:cardCornerRadius="24dp" app:cardElevation="0dp" app:strokeColor="#33808FA8" app:strokeWidth="1dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+                    <LinearLayout android:id="@+id/sensorWarningHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:orientation="horizontal" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Доступ к системным датчикам" android:textAppearance="?attr/textAppearanceTitleMedium" android:textStyle="bold" />
+                        <TextView android:id="@+id/sensorWarningArrow" android:layout_width="32dp" android:layout_height="32dp" android:gravity="center" android:text="⌄" android:textSize="22sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/sensorWarningBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="Android не предоставляет общего разрешения на чтение системных показателей CPU, GPU, ОЗУ и температуры. Приложение получает их через доступные системные интерфейсы — отдельное подтверждение для датчиков не требуется. На некоторых устройствах прошивка ограничивает показ температуры или частоты GPU, тогда будет отображаться «н/д»." android:textAppearance="?attr/textAppearanceBodySmall" />
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Для работы плавающего окна нужны разрешения «Поверх других приложений» и, на Android 13+, «Уведомления». Они запрашиваются отдельно при включении." android:textAppearance="?attr/textAppearanceBodySmall" android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
