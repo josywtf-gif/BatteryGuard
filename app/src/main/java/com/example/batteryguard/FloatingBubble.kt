@@ -149,7 +149,14 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         setTextColor(when (style) { "neon" -> accent(key); "terminal" -> 0xFFB6FFB0.toInt(); else -> Color.WHITE })
         typeface = valueTypeface(style)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, valueSizeSp(style)); maxLines = 1
-        ellipsize = if (key == "ram") null else TextUtils.TruncateAt.END
+        // RAM and the optional battery voltage/current detail are allowed
+        // to grow the row and panel. Ellipsizing voltage details made the
+        // overlay keep its old width instead of adapting like the RAM row.
+        ellipsize = if (key == "ram" || (key == "battery" && Prefs.voltageDetailsEnabled(ctx))) {
+            null
+        } else {
+            TextUtils.TruncateAt.END
+        }
         includeFontPadding = false; gravity = Gravity.CENTER_VERTICAL
         // RAM has a variable-length "used / total MB" string. Shrink it
         // slightly if needed instead of showing an ellipsis.
