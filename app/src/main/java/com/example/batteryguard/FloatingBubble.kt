@@ -297,21 +297,12 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         }
         // Include actual row chrome (icon/name slot, value gap and right padding)
         // so the measured width is sufficient for the longest RAM value.
-        val desired = (contentWidth + padH + px(8)).toInt() + insetLeft
-        // Fixed orientation-independent width: use the shorter screen edge as
-        // a shared reference. This prevents a wider landscape DisplayMetrics
-        // from stretching the overlay compared with portrait.
-        val shortEdgePx = minOf(
-            ctx.resources.displayMetrics.widthPixels,
-            ctx.resources.displayMetrics.heightPixels
-        )
-        val normalizedWidthPx = (shortEdgePx * 0.42f).toInt()
-        // Keep enough room for the current text, but use the same reference
-        // width in both orientations (text remains ellipsized if it exceeds it).
-        // Use the measured worst-case row width too. This value is derived
-        // from the same short-edge reference in both orientations.
-        contentWidthPx = maxOf(normalizedWidthPx, desired).coerceAtLeast(px(92))
-            .coerceAtMost(shortEdgePx.coerceAtLeast(px(92)))
+        val desired = (contentWidth + padH + px(8)).toInt()
+        // Width is content-measured in dp and does not depend on orientation.
+        // Do not scale it by the current screen's short edge: usable height
+        // changes with system bars/cutouts after rotation and caused stretching.
+        contentWidthPx = maxOf(desired, px(180))
+            .coerceAtLeast(px(92))
         contentHeightPx = contentHeight.coerceAtLeast(rowHeightPx) + padV * 2
         configuredKeys = keys; configuredStyle = style; configuredVoltageDetails = voltageDetails
 
@@ -339,16 +330,18 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         val metrics = ctx.resources.displayMetrics
         val screenWidth = metrics.widthPixels
         val screenHeight = metrics.heightPixels
-        val commonEdge = minOf(screenWidth, screenHeight)
 
-        val minX = -contentWidthPx + px(12)
-        val maxX = (commonEdge - contentWidthPx).coerceAtLeast(0)
-        val minY = -contentHeightPx + rowHeightPx
-        val maxY = (commonEdge - contentHeightPx).coerceAtLeast(0)
-        // Slider values map to a fraction of the common short edge, not to
-        // orientation-dependent pixel dimensions. +/-200 maps to +/- half edge.
-        val offsetX = (Prefs.posX(ctx) * commonEdge / 400f).toInt().coerceIn(minX, maxX)
-        val offsetY = (Prefs.posY(ctx) * commonEdge / 400f).toInt().coerceIn(minY, maxY)
+        // Slider values are dp offsets, so the same setting means the same
+        // physical distance in portrait and landscape. Never scale by screen
+        // dimensions or move the WindowManager surface.
+        val offsetX = px(Prefs.posX(ctx)).coerceIn(
+            -contentWidthPx + px(12),
+            (screenWidth - contentWidthPx).coerceAtLeast(0)
+        )
+        val offsetY = px(Prefs.posY(ctx)).coerceIn(
+            -contentHeightPx + rowHeightPx,
+            (screenHeight - contentHeightPx).coerceAtLeast(0)
+        )
 
         lp.gravity = Gravity.TOP or Gravity.START
         lp.x = 0
@@ -356,6 +349,8 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         lp.width = WindowManager.LayoutParams.MATCH_PARENT
         lp.height = WindowManager.LayoutParams.MATCH_PARENT
 
+        // Solid background extends from the fixed top-left origin to the
+        // shifted text layer. The text itself is the only translated child.
         backgroundView.layoutParams = FrameLayout.LayoutParams(
             contentWidthPx + offsetX.coerceAtLeast(0),
             contentHeightPx + offsetY.coerceAtLeast(0),
