@@ -170,7 +170,10 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
 
     private fun hRow(h: Int, vararg children: View) = LinearLayout(ctx).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
-        layoutParams = LinearLayout.LayoutParams(-1, h).apply { bottomMargin = 0 }
+        // WRAP_CONTENT is essential: MATCH_PARENT made each row fill
+        // the available landscape width, and the TextView then clipped.
+        // Let the row expand to its complete label/value width.
+        layoutParams = LinearLayout.LayoutParams(-2, h).apply { bottomMargin = 0 }
         children.forEach { addView(it) }
     }
 
