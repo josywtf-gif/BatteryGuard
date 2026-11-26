@@ -388,6 +388,10 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
     }
 
     fun show(values: Map<String, String>) {
+        // Re-apply opacity on every refresh. SettingsActivity updates the
+        // preference and restarts the service, but the existing overlay view
+        // is reused; without this call its drawable kept the previous alpha.
+        applyAlpha(Prefs.alpha(ctx))
         val keys = values.keys.toList(); applySize(Prefs.size(ctx), keys)
         var textChanged = false
         values.forEach { (key, value) ->
