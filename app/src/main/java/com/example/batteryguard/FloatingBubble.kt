@@ -20,16 +20,18 @@ import android.widget.TextView
 
 class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY) {
     private val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    // Полноэкранная область-подложка: её верхний и левый края остаются за экраном.
-    // Само содержимое закреплено у правого/нижнего края и перемещается ползунками.
+    // The WindowManager surface is permanently fixed to screen origin.
+    // Only its child background and text layout are adjusted by the sliders.
     private val windowRoot = FrameLayout(ctx)
+    private val backgroundView = View(ctx)
     private val root = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
     private val rows = LinkedHashMap<String, TextView>()
     private val lp = WindowManager.LayoutParams(
-        px(180), px(80), type,
+        WindowManager.LayoutParams.MATCH_PARENT,
+        WindowManager.LayoutParams.MATCH_PARENT,
+        type,
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
         PixelFormat.TRANSLUCENT
@@ -51,12 +53,16 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
     private var contentHeightPx = px(80)
 
     init {
-        // Фон уходит за левый край экрана; текст сдвигается только на боковой вырез (в альбомной ориентации).
-        // Верхний вырез не учитывается: в портрете строка состояния используется под значения.
+        // Background stays at the top-left; the text layer is positioned independently.
+        windowRoot.addView(backgroundView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.TOP or Gravity.START
+        ))
         windowRoot.addView(root, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT,
-            Gravity.RIGHT or Gravity.BOTTOM
+            Gravity.TOP or Gravity.START
         ))
         windowRoot.setOnApplyWindowInsetsListener { _, insets ->
             val l = if (Build.VERSION.SDK_INT >= 28) insets.displayCutout?.safeInsetLeft ?: 0 else 0
@@ -281,26 +287,35 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         contentHeightPx = contentHeight.coerceAtLeast(rowHeightPx) + padV * 2
         configuredKeys = keys; configuredStyle = style; configuredVoltageDetails = voltageDetails
 
-        root.background = styleBackground(style)
+        backgroundView.background = styleBackground(style)
+        root.background = null
         root.gravity = Gravity.CENTER_VERTICAL
         root.setPadding(insetLeft + leftPad, padV, px(8), padV)
         if (keysChanged || sizeChanged) rebuildRows(keys, style)
         updateOverlayGeometry()
     }
 
-    /** Window remains at (0,0). Sliders resize its right/bottom edges;
-     * content is anchored to those edges and clipped at the fixed top/left. */
+    /**
+     * WindowManager is MATCH_PARENT at (0,0) and never resized or repositioned.
+     * The background remains anchored at the top-left and grows right/down.
+     * Only the text layer receives slider margins; negative margins are clipped
+     * by the fixed screen-sized parent instead of moving the system window.
+     */
     private fun updateOverlayGeometry() {
-        // WindowManager surface never moves: top-left is always screen (0, 0).
-        // Positive slider values add transparent space on the right/bottom.
-        // Negative values move only the content beyond the fixed top/left edge.
         val offsetX = px(Prefs.posX(ctx))
         val offsetY = px(Prefs.posY(ctx))
+
         lp.gravity = Gravity.TOP or Gravity.START
         lp.x = 0
         lp.y = 0
-        lp.width = (contentWidthPx + offsetX.coerceAtLeast(0)).coerceAtLeast(contentWidthPx)
-        lp.height = (contentHeightPx + offsetY.coerceAtLeast(0)).coerceAtLeast(contentHeightPx)
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT
+        lp.height = WindowManager.LayoutParams.MATCH_PARENT
+
+        backgroundView.layoutParams = FrameLayout.LayoutParams(
+            contentWidthPx + offsetX.coerceAtLeast(0),
+            contentHeightPx + offsetY.coerceAtLeast(0),
+            Gravity.TOP or Gravity.START
+        )
         root.layoutParams = FrameLayout.LayoutParams(
             contentWidthPx,
             contentHeightPx,
@@ -322,7 +337,11 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         }
     }
 
-    fun applyAlpha(percent: Int) { root.alpha = percent.coerceIn(30, 100) / 100f }
+    fun applyAlpha(percent: Int) {
+        val a = percent.coerceIn(30, 100) / 100f
+        root.alpha = a
+        backgroundView.alpha = a
+    }
 
     fun show(values: Map<String, String>) {
         val keys = values.keys.toList(); applySize(Prefs.size(ctx), keys)
