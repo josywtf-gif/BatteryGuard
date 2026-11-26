@@ -185,7 +185,7 @@ class FloatingBubble(private val ctx: Context, type: Int = WindowManager.LayoutP
         val valueLp = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             -1
-        ).apply { marginStart = px(5) }
+        ).apply { marginStart = px(3) }
         return when (style) {
             "rtss" -> {
                 val name = TextView(ctx).apply {
