@@ -1,4 +1,4 @@
-name: Build APK
+name: BatteryGuard Android build
 
 on:
   push:
@@ -14,44 +14,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Unpack zip if project is zipped
+      # One-time migration: unpack the archived Android project into the repo root.
+      # Future builds use the normal Gradle project directly, without ZIP searching.
+      - name: Extract project into repository root
         run: |
-          if [ -z "$(find . -name settings.gradle.kts | head -1)" ]; then
-            z=$(find . -maxdepth 2 -iname "*.zip" | head -1)
-            if [ -n "$z" ]; then
-              mkdir -p unpacked
-              unzip -q -o "$z" -d unpacked
-            fi
+          if [ ! -f settings.gradle.kts ]; then
+            test -f BatteryGuard.zip || { echo "BatteryGuard.zip missing"; exit 1; }
+            mkdir -p .project_extract
+            unzip -q BatteryGuard.zip -d .project_extract
+            src=".project_extract/fps_fast"
+            test -f "$src/settings.gradle.kts" || { echo "Expected project at $src"; exit 1; }
+            for item in "$src"/* "$src"/.[!.]*; do
+              [ -e "$item" ] || continue
+              [ "$(basename "$item")" = ".github" ] && continue
+              cp -a "$item" .
+            done
+            rm -rf .project_extract BatteryGuard.zip
           fi
 
-      - name: Apply fixed top-left overlay geometry
+      - name: Apply fixed top-left overlay layout
         run: python3 fix_overlay.py
 
-      - name: Persist corrected project archive
+      # Commit the extracted and patched source so the repository becomes editable
+      # directly. This also removes the old source ZIP from the repo.
+      - name: Save extracted source to GitHub
         run: |
-          if [ -d unpacked/fps_fast ]; then
-            cd unpacked
-            zip -qr ../BatteryGuard.zip fps_fast
-            cd ..
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add BatteryGuard.zip
-            if ! git diff --cached --quiet; then
-              git commit -m "Persist fixed overlay geometry [skip ci]"
-              git push
-            fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Extract project and fix fixed-corner overlay [skip ci]"
+            git push
           fi
-
-      - name: Locate project
-        id: loc
-        run: |
-          f=$(find . -name settings.gradle.kts | head -1)
-          if [ -z "$f" ]; then
-            echo "settings.gradle.kts not found. Repository contents:"
-            find . -path ./.git -prune -o -type f -print | head -50
-            exit 1
-          fi
-          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v4
         with:
@@ -63,10 +57,9 @@ jobs:
           gradle-version: 8.7
 
       - name: Build debug APK
-        working-directory: ${{ steps.loc.outputs.dir }}
         run: gradle assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
           name: BatteryGuard-debug
-          path: ${{ steps.loc.outputs.dir }}/app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
